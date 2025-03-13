@@ -1,5 +1,7 @@
 # P2P Lending Order System Problem
 
+RFC for Order System Improvement (Batch Processing, Error Handling & Retry Mechanism, Bulk Update Loan Status, DLQ)
+
 ## Problem Statement
 The existing P2P lending order system struggles to handle large-scale order processing efficiently. Key issues include:
 
