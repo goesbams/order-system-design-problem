@@ -3,7 +3,7 @@
   participant OrderService
   participant TaskQueue
   participant LoanService
-  participant TemenosT24
+  participant FinanceService3rd
   participant PubSub
   participant DLQ
 
@@ -15,8 +15,8 @@
     TaskQueue->>LoanService: Process batch
     LoanService->>LoanService: Update bulk update status and assign investor to Loan
     loop For each loan in batch
-      LoanService->>TemenosT24: Update loan status (RESERVED)
-      TemenosT24-->>LoanService: Response (Success/Failure)
+      LoanService->>FinanceService3rd: Update loan status (RESERVED)
+      FinanceService3rd-->>LoanService: Response (Success/Failure)
       alt All loan update success in all batches
         LoanService->>PubSub: Publish success event
       else Failure
@@ -31,8 +31,8 @@
   TaskQueue->>LoanService: Process bulk update (INVESTED)
   LoanService->>LoanService: Bulk update loan STATUS (INVESTED)
   loop For each loan in batch
-    LoanService->>TemenosT24: Update loan status (INVESTED)
-    TemenosT24-->>LoanService: Response (Success/Failure)
+    LoanService->>FinanceService3rd: Update loan status (INVESTED)
+    FinanceService3rd-->>LoanService: Response (Success/Failure)
     alt updated all loans success
       LoanService->>PubSub: Publish success event
     else Failure
