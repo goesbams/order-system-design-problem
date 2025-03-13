@@ -1,0 +1,28 @@
+@startuml Order System
+  participant Client
+  participant OrderService
+  participant LoanService
+  participant TemenosT24
+  participant PubSub
+  
+  Client->>OrderService: Submit Order with order items
+  loop Each Order Item
+      OrderService->>OrderService: Update Order Status IN_PROGRESS
+      OrderService->>LoanService: Request Loan Reservation
+      LoanService->>LoanService: Update Loan Status RESERVED and Assign to Investor
+      LoanService->>TemenosT24: Update Loan Status and assign to Investor
+      TemenosT24-->>LoanService: Response (Slow, Many Failures)
+      LoanService-->>OrderService: Remove failed order items
+  end
+  OrderService->>CloudTask: Send bulk update loan status INVESTED
+  
+  loop
+    CloudTask->>LoanService: Single Loan Update INVESTED Request
+    LoanService->>TemenosT24: Update loan status INVESTED
+    TemenosT24-->>LoanService: Response (More Failures)
+  end
+  
+  LoanService-->>PubSub: Sending Transaction Code of Success updated loan on temenos
+  PubSub-->>OrderService: Listen Success Transaction
+  OrderService-->>OrderService:  update order status SUCCESS
+@enduml

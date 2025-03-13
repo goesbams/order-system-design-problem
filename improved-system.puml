@@ -1,0 +1,46 @@
+@startuml
+  participant Client
+  participant OrderService
+  participant TaskQueue
+  participant LoanService
+  participant TemenosT24
+  participant PubSub
+  participant DLQ
+
+  Client->>OrderService: Submit Order with order items
+  OrderService->>OrderService: Split order items into batches
+  OrderService->>TaskQueue: Push batches to task queue
+
+  loop For each batch
+    TaskQueue->>LoanService: Process batch
+    LoanService->>LoanService: Update bulk update status and assign investor to Loan
+    loop For each loan in batch
+      LoanService->>TemenosT24: Update loan status (RESERVED)
+      TemenosT24-->>LoanService: Response (Success/Failure)
+      alt All loan update success in all batches
+        LoanService->>PubSub: Publish success event
+      else Failure
+        LoanService->>LoanService: Retry with exponential backoff
+        LoanService->>DLQ: Move permanent failures to DLQ
+      end
+    end
+  end
+
+  PubSub-->>OrderService: Listen for success events
+  OrderService->>TaskQueue: Push bulk update to INVESTED status
+  TaskQueue->>LoanService: Process bulk update (INVESTED)
+  LoanService->>LoanService: Bulk update loan STATUS (INVESTED)
+  loop For each loan in batch
+    LoanService->>TemenosT24: Update loan status (INVESTED)
+    TemenosT24-->>LoanService: Response (Success/Failure)
+    alt updated all loans success
+      LoanService->>PubSub: Publish success event
+    else Failure
+      LoanService->>LoanService: Retry with exponential backoff
+      LoanService->>DLQ: Move permanent failures to DLQ
+    end
+  end
+
+  PubSub-->>OrderService: Listen for success events
+  OrderService->>OrderService: Update order status (SUCCESS)
+@enduml
