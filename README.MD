@@ -88,8 +88,9 @@ The existing P2P lending order system struggles to handle large-scale order proc
   participant PubSub
   
   Client->>OrderService: Submit Order with order items
+  OrderService->>OrderService: Update Order Status IN_PROGRESS
+  
   loop Each Order Item
-      OrderService->>OrderService: Update Order Status IN_PROGRESS
       OrderService->>LoanService: Request Loan Reservation
       LoanService->>LoanService: Update Loan Status RESERVED and Assign to Investor
       LoanService->>FinanceService3rd: Update Loan Status and assign to Investor
